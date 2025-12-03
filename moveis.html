@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casa Conforto | Móveis de Alto Padrão</title>
+    <!-- Carrega Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carrega a fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Define a fonte Inter como padrão e estilo de fundo */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcfcfc;
+            color: #1f2937;
+        }
+
+        /* Estilos para o modal do carrinho e transições de página */
+        .modal {
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-content {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .animate-in {
+            opacity: 1;
+            visibility: visible;
+        }
+        .animate-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .animate-in .modal-content {
+            transform: translateY(0) scale(1);
+        }
+        .animate-out .modal-content {
+            transform: translateY(-20px) scale(0.98);
+        }
+        /* Efeito de card profissional */
+        .product-card-hover:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        /* Scrollbar discreto */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f3f4f6;
+        }
+        /* Ajuste de transição para a imagem */
+        .product-image {
+            transition: opacity 0.3s, transform 0.5s ease-in-out;
+        }
+        /* Estilo para a imagem placeholder/loading */
+        .image-placeholder {
+            min-height: 192px; /* Mantém a altura dos 48 (h-48) do Tailwind */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e5e7eb; /* gray-200 */
+        }
+    </style>
+    
+    <!-- Configuração de Icones (Lucide Icons) -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="min-h-screen antialiased">
+
+    <script>
+        // --- DADOS MOCK E ESTADO LOCAL ---
+        const products = [
+            {
+                id: 'sofa-cloud',
+                name: 'Sofá Modular Cloud',
+                description: 'O epítome do conforto. Design modular flexível com estofamento em linho macio, perfeito para relaxar e receber convidados com estilo e aconchego. Acompanha almofadas decorativas.',
+                price: 4999.90,
+                // Imagem estática de alta qualidade
+                imageUrl: './81Sjg1mQ7QL.jpg'
+            },
+            {
+                id: 'mesa-jantar-etna',
+                name: 'Mesa de Jantar Etna',
+                description: 'Elegância e durabilidade em uma peça. Mesa de jantar redonda para 6 lugares, com tampo em madeira maciça de carvalho e base cônica em metal escovado, ideal para refeições em família.',
+                price: 2500.00,
+                // Imagem estática de alta qualidade
+                imageUrl: './mesadejantarnewforest_3.jpg'
+            },
+            {
+                id: 'poltrona-confort',
+                name: "Poltrona do Arquiteto's Confort", 
+                description: 'Sua aliada de leitura. Poltrona reclinável de alto padrão, com apoio para os pés integrado e revestimento em couro ecológico marrom. Oferece máximo conforto ergonômico.',
+                price: 1850.50,
+                // Imagem estática de alta qualidade
+                imageUrl: './15834155-poltrona-confort-k-026---ambientada-m2lg345rgw.webp'
+            },
+            {
+                id: 'estante-minimal',
+                name: 'Estante Minimalista',
+                description: 'Organização com design clean. Estante de parede modular com estrutura em aço carbono preto fosco e prateleiras em MDF, perfeita para expor livros e itens de decoração sem sobrecarregar o ambiente.',
+                price: 899.00,
+                // Imagem estática de alta qualidade
+                imageUrl: './81FL5vxFAZL.jpg'
+            },
+        ];
+
+        let cartItems = [];
+        let currentPage = 'products'; // Estado para a navegação simulada
+        
+        // --- FUNÇÕES DE UTILIDADE E RENDERIZAÇÃO ---
+        
+        window.refreshIcons = () => {
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
+        };
+
+        const escapeBackticks = (str) => {
+            if (typeof str !== 'string') return '';
+            return str.replace(/`/g, '\\`').replace(/'/g, '\\\''); 
+        };
+
+        window.renderProducts = () => {
+            const html = products.map(product => {
+                
+                const safeName = escapeBackticks(product.name);
+                const safeDescription = escapeBackticks(product.description);
+                
+                return `
+                    <div id="product-card-${product.id}" class="product-card-hover relative bg-white rounded-2xl shadow-lg overflow-hidden transform transition duration-300 ease-in-out border border-gray-100">
+                        <!-- Imagem Estática Carregada pelo URL -->
+                        <div class="image-placeholder w-full h-48 relative">
+                            <img 
+                                id="product-img-${product.id}" 
+                                src="${product.imageUrl}" 
+                                alt="${safeName}" 
+                                class="w-full h-48 object-cover product-image transition duration-500 hover:scale-[1.05] opacity-100" 
+                                onerror="this.onerror=null; this.src='https://placehold.co/400x300/FEE2E2/EF4444?text=Imagem+Nao+Encontrada';"
+                            >
+                        </div>
+
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${safeName}</h3>
+                            <p class="text-gray-500 mb-4 text-sm h-12 overflow-hidden">${safeDescription}</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-2xl font-extrabold text-indigo-700">R$ ${product.price.toFixed(2)}</span>
+                                <button
+                                    onclick="addToCart('${product.id}')"
+                                    class="flex items-center justify-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition duration-150 transform hover:ring-4 hover:ring-indigo-300 focus:outline-none"
+                                >
+                                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                                    <span class="text-sm font-semibold">Adicionar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return html;
+        };
+        
+        // --- DEFINIÇÃO DO CONTEÚDO DAS PÁGINAS SIMULADAS ---
+
+        const pageContent = {
+            'products': () => `
+                <!-- Hero Section Profissional -->
+                <div class="bg-gray-100 p-8 md:p-16 rounded-3xl shadow-xl border border-gray-200 mb-12">
+                    <div class="flex flex-col md:flex-row items-center justify-between">
+                        <div class="md:w-1/2">
+                            <h1 class="text-4xl md:text-6xl font-extrabold mb-4 text-gray-900 leading-tight">
+                                Design <span class="text-indigo-600">e Conforto</span>. Simples Assim.
+                            </h1>
+                            <p class="text-gray-600 text-lg mb-6 max-w-lg">
+                                Qualidade inigualável e peças exclusivas para transformar seu lar em um refúgio de bem-estar.
+                            </p>
+                            <button onclick="document.getElementById('product-list-section').scrollIntoView({ behavior: 'smooth' });" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.03] focus:ring-4 focus:ring-indigo-300">
+                                Compre Agora
+                            </button>
+                        </div>
+                        <div class="md:w-1/2 mt-8 md:mt-0 flex justify-end">
+                            <!-- Imagem estática do Hero -->
+                            <img 
+                                src="https://placehold.co/350x350/E0E7FF/3730A3?text=Sofisticação" 
+                                alt="Sofisticação" 
+                                class="rounded-2xl shadow-2xl object-cover border-4 border-white"
+                                onerror="this.onerror=null; this.src='https://placehold.co/350x350/FEE2E2/EF4444?text=Falha+Imagem';"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Produtos -->
+                <section id="product-list-section" class="pt-6">
+                    <h2 class="text-3xl font-extrabold text-gray-900 mb-8 border-b-2 border-indigo-200 pb-2">Produtos em Destaque</h2>
+                    <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        ${window.renderProducts()}
+                    </div>
+                </section>
+            `,
+            'collections': () => `
+                <div class="p-8 bg-white rounded-3xl shadow-xl border border-gray-200">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2">Nossas Coleções Exclusivas</h2>
+                    <p class="text-lg text-gray-600 mb-8">Cada coleção é curada por designers renomados, buscando harmonia e funcionalidade para o seu espaço.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-indigo-50 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-2xl font-bold text-indigo-700 mb-2">Coleção Nórdica 'Hygge'</h3>
+                            <p class="text-gray-700 mb-4">Móveis de linhas simples, tons claros e materiais naturais que promovem conforto e bem-estar, inspirados no design escandinavo.</p>
+                            <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center space-x-1">
+                                <span>Ver Detalhes</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                        <div class="bg-gray-100 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">Coleção Industrial 'Urbano'</h3>
+                            <p class="text-gray-700 mb-4">Peças robustas que combinam metal preto fosco, madeira rústica e design utilitário. A essência da vida moderna em grandes centros.</p>
+                            <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-800 transition flex items-center space-x-1">
+                                <span>Ver Detalhes</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <button onclick="renderPage('products')" class="mt-8 bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-xl hover:bg-gray-300 transition">
+                        Voltar para Produtos
+                    </button>
+                </div>
+            `,
+            'about': () => `
+                <div class="p-8 bg-white rounded-3xl shadow-xl border border-gray-200">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2">Nossa Missão</h2>
+                    <p class="text-lg text-gray-700 mb-6">A Casa Conforto nasceu de um sonho de redefinir o que significa viver bem. Nossa missão é fornecer peças de mobiliário que combinam **estética sofisticada, durabilidade e conforto inigualável**, sempre com um olhar atento à sustentabilidade e design atemporal. Acreditamos que seu lar deve ser seu refúgio.</p>
+                    
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                            <i data-lucide="zap" class="w-8 h-8 mx-auto text-indigo-600 mb-2"></i>
+                            <h3 class="font-bold text-xl mb-1">Inovação</h3>
+                            <p class="text-sm text-gray-600">Sempre em busca das melhores técnicas e materiais.</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                            <i data-lucide="leaf" class="w-8 h-8 mx-auto text-indigo-600 mb-2"></i>
+                            <h3 class="font-bold text-xl mb-1">Sustentabilidade</h3>
+                            <p class="text-sm text-gray-600">Compromisso com o planeta em toda a cadeia produtiva.</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                            <i data-lucide="gem" class="w-8 h-8 mx-auto text-indigo-600 mb-2"></i>
+                            <h3 class="font-bold text-xl mb-1">Qualidade</h3>
+                            <p class="text-sm text-gray-600">Peças feitas para durar gerações.</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            'support': () => `
+                <div class="p-8 bg-white rounded-3xl shadow-xl border border-gray-200 max-w-3xl mx-auto">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-6 border-b-2 border-indigo-200 pb-2">Central de Suporte</h2>
+                    <p class="text-lg text-gray-700 mb-8">Nossa equipe está pronta para ajudar. Abaixo, as perguntas mais frequentes:</p>
+                    
+                    <div class="space-y-4">
+                        <details class="bg-gray-50 p-4 rounded-xl border border-gray-200 cursor-pointer">
+                            <summary class="font-semibold text-gray-800 flex justify-between items-center">
+                                Qual o prazo de entrega?
+                                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200"></i>
+                            </summary>
+                            <p class="pt-2 text-gray-600">O prazo varia de 7 a 20 dias úteis, dependendo da sua região e da disponibilidade em estoque. Verifique o prazo exato na página de checkout.</p>
+                        </details>
+                        <details class="bg-gray-50 p-4 rounded-xl border border-gray-200 cursor-pointer">
+                            <summary class="font-semibold text-gray-800 flex justify-between items-center">
+                                Posso devolver um produto?
+                                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200"></i>
+                            </summary>
+                            <p class="pt-2 text-gray-600">Sim, aceitamos devoluções em até 7 dias após o recebimento, desde que o produto esteja em perfeitas condições. Consulte a nossa política de Trocas e Devoluções no rodapé.</p>
+                        </details>
+                        <details class="bg-gray-50 p-4 rounded-xl border border-gray-200 cursor-pointer">
+                            <summary class="font-semibold text-gray-800 flex justify-between items-center">
+                                Vocês oferecem montagem?
+                                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200"></i>
+                            </summary>
+                            <p class="pt-2 text-gray-600">Sim, a montagem está inclusa para a maioria dos móveis. Consulte os detalhes do produto antes de finalizar a compra.</p>
+                        </details>
+                    </div>
+
+                    <div class="mt-8 text-center border-t pt-6">
+                        <p class="text-md font-medium text-gray-600 mb-3">Ainda precisa de ajuda?</p>
+                        <button onclick="showNotification('Email de suporte enviado com sucesso!', 'success')" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-indigo-700 transition">
+                            Fale com um Especialista
+                        </button>
+                    </div>
+                </div>
+            `,
+            'account': () => `
+                <div class="p-8 bg-white rounded-3xl shadow-xl border border-gray-200 max-w-3xl mx-auto">
+                    <div class="flex items-center space-x-4 mb-8 border-b pb-4">
+                         <i data-lucide="circle-user" class="w-16 h-16 text-indigo-600"></i>
+                        <div>
+                            <h2 class="text-4xl font-extrabold text-gray-900">Olá, Cliente Elegante!</h2>
+                            <p class="text-lg text-gray-500">Bem-vindo(a) ao seu painel de controle.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-5 bg-indigo-50 rounded-xl border border-indigo-200">
+                            <i data-lucide="package" class="w-6 h-6 text-indigo-700 mb-2"></i>
+                            <h3 class="font-bold text-xl mb-1 text-gray-800">Meus Pedidos</h3>
+                            <p class="text-sm text-gray-600">Acompanhe o status e histórico das suas compras. (3 pedidos recentes)</p>
+                            <a href="#" class="mt-3 inline-block font-semibold text-indigo-600 hover:text-indigo-800 transition">Ver Pedidos</a>
+                        </div>
+                        <div class="p-5 bg-gray-50 rounded-xl border border-gray-200">
+                            <i data-lucide="map-pin" class="w-6 h-6 text-gray-700 mb-2"></i>
+                            <h3 class="font-bold text-xl mb-1 text-gray-800">Meus Endereços</h3>
+                            <p class="text-sm text-gray-600">Gerencie seus endereços de entrega e faturamento.</p>
+                            <a href="#" class="mt-3 inline-block font-semibold text-indigo-600 hover:text-indigo-800 transition">Gerenciar</a>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <button onclick="showNotification('Sessão encerrada com sucesso.', 'info', 'log-out')" class="bg-red-500 text-white font-bold py-2 px-6 rounded-xl shadow-md hover:bg-red-600 transition">
+                            <i data-lucide="log-out" class="w-5 h-5 inline-block mr-2"></i>
+                            <span>Sair da Conta</span>
+                        </button>
+                    </div>
+                </div>
+            `
+        };
+
+
+        // Função principal de renderização de página
+        window.renderPage = async (pageName) => {
+            const mainContent = document.getElementById('main-content');
+            if (!mainContent) return;
+            
+            // Simula um tempo de carregamento para a transição
+            await simulateLoading(300); 
+
+            // Atualiza o estado da página
+            currentPage = pageName;
+
+            // Remove o conteúdo antigo
+            mainContent.innerHTML = ''; 
+            
+            // Adiciona o novo conteúdo
+            mainContent.innerHTML = pageContent[pageName]();
+            
+            // Recarrega os ícones após a injeção de novo HTML
+            window.refreshIcons();
+            
+            // Garante que o usuário veja o topo da nova página
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+
+        // Simula um loading com delay para dar a sensação de processamento
+        const simulateLoading = (duration = 500) => {
+            const overlay = document.getElementById('loading-overlay');
+            if (!overlay) return Promise.resolve();
+            
+            overlay.classList.remove('hidden', 'opacity-0');
+            overlay.classList.add('opacity-100');
+            
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        resolve();
+                    }, 300); // Tempo da transição CSS
+                }, duration);
+            });
+        };
+
+        // Função para exibir notificações (melhorada)
+        window.showNotification = (message, type = 'info', icon = 'shopping-bag') => {
+            const notification = document.getElementById('notification-bar');
+            if (!notification) return;
+
+            notification.className = 'fixed bottom-4 right-4 p-4 rounded-xl text-white shadow-xl z-50 transition duration-300 ease-in-out transform translate-y-20 opacity-0';
+
+            let bgColor = 'bg-blue-600';
+            let iconElement = `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
+
+            if (type === 'success') {
+                bgColor = 'bg-green-600';
+                iconElement = `<i data-lucide="check-circle" class="w-5 h-5"></i>`;
+            } else if (type === 'error') {
+                bgColor = 'bg-red-600';
+                iconElement = `<i data-lucide="x-circle" class="w-5 h-5"></i>`;
+            }
+
+            setTimeout(() => {
+                notification.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        ${iconElement}
+                        <span class="font-semibold">${message}</span>
+                    </div>
+                `;
+                
+                window.refreshIcons();
+
+                notification.className = `fixed bottom-4 right-4 p-4 rounded-xl text-white shadow-xl z-50 transition duration-300 ease-in-out transform translate-y-0 opacity-100 ${bgColor}`;
+            }, 50);
+
+            setTimeout(() => {
+                notification.className = 'fixed bottom-4 right-4 p-4 rounded-xl text-white shadow-xl z-50 transition duration-300 ease-in-out transform translate-y-20 opacity-0';
+            }, 4000);
+        };
+        
+        // --- LÓGICA DE MODAIS ---
+        
+        window.toggleCartModal = () => {
+            const modal = document.getElementById('cart-modal');
+            if (modal.classList.contains('animate-in')) {
+                modal.classList.remove('animate-in');
+                modal.classList.add('animate-out');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            } else {
+                modal.classList.remove('hidden', 'animate-out');
+                modal.classList.add('animate-in');
+                window.refreshIcons(); 
+                updateCartUI(); // Garante que o carrinho esteja atualizado ao abrir
+            }
+        };
+
+        // --- LÓGICA DO CARRINHO (LOCAL) ---
+
+        window.updateCartUI = () => {
+            const cartListEl = document.getElementById('cart-list');
+            const cartTotalEl = document.getElementById('cart-total');
+            const cartCountEl = document.getElementById('cart-count');
+            const cartEmptyMessageEl = document.getElementById('cart-empty-message');
+            const cartActionButtonEl = document.getElementById('cart-action-buttons');
+
+            if (!cartListEl || !cartTotalEl || !cartCountEl || !cartEmptyMessageEl || !cartActionButtonEl) return;
+
+            cartListEl.innerHTML = '';
+            let totalItems = 0;
+            let totalPrice = 0;
+            let htmlContent = '';
+
+            if (cartItems.length === 0) {
+                cartEmptyMessageEl.classList.remove('hidden');
+                cartActionButtonEl.classList.add('hidden');
+            } else {
+                cartEmptyMessageEl.classList.add('hidden');
+                cartActionButtonEl.classList.remove('hidden');
+
+                cartItems.forEach(item => {
+                    const itemPrice = item.product.price * item.quantity;
+                    totalItems += item.quantity;
+                    totalPrice += itemPrice;
+
+                    // Imagem estática do produto
+                    const itemImageUrl = item.product.imageUrl || 'https://placehold.co/64x64/cccccc/333333?text=N/A';
+                    
+                    const safeName = escapeBackticks(item.product.name);
+
+                    htmlContent += `
+                        <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm mb-3">
+                            <div class="flex items-center space-x-4 flex-grow">
+                                <img 
+                                    src="${itemImageUrl}" 
+                                    alt="${safeName}" 
+                                    class="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/64x64/FEE2E2/EF4444?text=Falha';"
+                                >
+                                <div>
+                                    <p class="font-semibold text-gray-800">${safeName}</p>
+                                    <p class="text-sm text-gray-500">Qtd: ${item.quantity}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end space-y-1">
+                                <p class="font-bold text-lg text-indigo-700">R$ ${itemPrice.toFixed(2)}</p>
+                                <button onclick="removeItem('${item.id}')" class="text-red-500 hover:text-red-700 p-1 transition duration-150 flex-shrink-0" title="Remover item">
+                                    <i data-lucide="minus-circle" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            cartListEl.innerHTML = htmlContent;
+            let shippingFee = totalPrice > 0 ? 50.00 : 0.00;
+            const totalWithShipping = totalPrice + shippingFee; 
+            
+            cartTotalEl.innerHTML = `
+                <div class="flex justify-between text-gray-600">
+                    <span>Subtotal:</span>
+                    <span>R$ ${totalPrice.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-gray-600">
+                    <span>Frete Simulado:</span>
+                    <span>R$ ${shippingFee.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between items-center pt-2 border-t border-dashed border-gray-300 mt-2">
+                    <span class="text-xl font-bold">Total:</span>
+                    <span class="text-2xl font-extrabold text-indigo-700">R$ ${totalWithShipping.toFixed(2)}</span>
+                </div>
+            `;
+            cartCountEl.textContent = totalItems > 0 ? totalItems : '';
+
+            window.refreshIcons();
+        };
+
+        /**
+         * Adiciona um produto ao carrinho.
+         * @param {string} productId - O ID único do produto.
+         */
+        window.addToCart = async (productId) => {
+            await simulateLoading(200);
+
+            // Busca os dados do produto pelo ID
+            const productData = products.find(p => p.id === productId);
+            if (!productData) return; 
+
+            const existingItem = cartItems.find(item => item.id === productId);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+                showNotification(`Adicionado: Mais uma unidade do ${productData.name}.`, 'success');
+            } else {
+                cartItems.push({
+                    id: productId,
+                    // Garante que o item no carrinho tenha o URL da imagem
+                    product: { id: productId, name: productData.name, price: productData.price, imageUrl: productData.imageUrl }, 
+                    quantity: 1
+                });
+                showNotification(`Produto Adicionado: ${productData.name} foi para o seu carrinho.`, 'success');
+            }
+            updateCartUI();
+        };
+
+        /**
+         * Remove um produto do carrinho.
+         * @param {string} productId - O ID único do produto a ser removido.
+         */
+        window.removeItem = async (productId) => {
+             await simulateLoading(100);
+
+            const item = cartItems.find(item => item.id === productId);
+            const name = item ? item.product.name : 'Item'; // Pega o nome para a notificação
+
+            const initialLength = cartItems.length;
+            cartItems = cartItems.filter(item => item.id !== productId);
+            
+            if (cartItems.length < initialLength) {
+                showNotification(`Removido: ${name} foi retirado do carrinho.`, 'info', 'trash-2');
+            }
+            
+            updateCartUI();
+        };
+
+        window.clearCart = async () => {
+            if (cartItems.length === 0) return;
+
+            await simulateLoading(500);
+
+            cartItems = [];
+            showNotification('Carrinho limpo: Todos os itens foram removidos.', 'info', 'check-square');
+            toggleCartModal(); 
+            updateCartUI();
+        };
+
+        window.checkout = async () => {
+            if (cartItems.length === 0) {
+                showNotification('O carrinho está vazio. Adicione produtos para continuar.', 'error');
+                return;
+            }
+
+            await simulateLoading(1500); 
+
+            const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+            const total = subtotal + 50.00; 
+            
+            cartItems = [];
+            updateCartUI();
+            toggleCartModal();
+
+            showNotification(`Pedido Concluído! Total: R$ ${total.toFixed(2)}. Seu pedido foi enviado para o processamento logístico.`, 'success', 'shopping-cart');
+        }
+
+        window.onload = function() {
+            window.renderPage('products'); // Inicia na página de produtos
+            // Inicializa o carrinho na abertura da página para garantir que o contador esteja correto (0)
+            updateCartUI(); 
+        };
+    </script>
+
+
+    <!-- Overlay de Carregamento (Simulação de Processamento) -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-[60] flex items-center justify-center opacity-0 hidden transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl flex items-center space-x-4 text-gray-800 border-t-4 border-indigo-600">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="font-semibold text-lg">Processando sua solicitação...</span>
+        </div>
+    </div>
+
+
+    <!-- Barra de Navegação (Header) -->
+    <header class="sticky top-0 z-40 bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo (volta para a página inicial) -->
+                <a href="#" onclick="renderPage('products')" class="text-2xl font-extrabold text-gray-900 tracking-tight">
+                    Casa <span class="text-indigo-600">Conforto</span>
+                </a>
+
+                <!-- Navegação Principal (Links agora mudam o conteúdo da página) -->
+                <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                    <a href="#" onclick="renderPage('products')" class="text-gray-600 hover:text-indigo-600 transition p-2">Produtos</a>
+                    <a href="#" onclick="renderPage('collections')" class="text-gray-600 hover:text-indigo-600 transition p-2">Coleções</a>
+                    <a href="#" onclick="renderPage('about')" class="text-gray-600 hover:text-indigo-600 transition p-2">Sobre Nós</a>
+                    <a href="#" onclick="renderPage('support')" class="text-gray-600 hover:text-indigo-600 transition p-2">Suporte</a>
+                </nav>
+
+                <!-- Botões de Ação -->
+                <div class="flex items-center space-x-4">
+                    <!-- Botão Minha Conta (agora renderiza a página de conta) -->
+                    <button 
+                        onclick="renderPage('account')"
+                        class="flex items-center space-x-2 text-sm font-semibold text-gray-600 hover:text-indigo-600 transition p-2 rounded-xl hidden sm:flex hover:bg-gray-100"
+                    >
+                        <i data-lucide="user-circle" class="w-5 h-5"></i>
+                        <span>Minha Conta</span>
+                    </button>
+
+                    <!-- Botão do Carrinho -->
+                    <button id="cart-button" onclick="toggleCartModal()" class="relative p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition duration-150 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                        <span id="cart-count" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal Dinâmico (Aqui o conteúdo das páginas será injetado) -->
+    <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <!-- O conteúdo da página atual será carregado aqui pelo JavaScript -->
+    </main>
+
+    <!-- Rodapé Profissional (Links não funcionais, conforme solicitado) -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 border-b border-gray-700">
+            <div>
+                <h4 class="font-bold text-lg mb-4 text-indigo-400">Casa Conforto</h4>
+                <p class="text-sm text-gray-400">Qualidade e design para sua casa, com entrega garantida em todo o país.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-4">Empresa</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                    <!-- Estes links são apenas placeholders (rodapé), não precisam de funcionalidade -->
+                    <li><a href="#" class="hover:text-indigo-400 transition">Sobre Nós</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition">Carreiras</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition">Blog</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-4">Ajuda</h4>
+                <ul class="space-y-2 text-sm text-gray-400">
+                     <!-- Estes links são apenas placeholders (rodapé), não precisam de funcionalidade -->
+                    <li><a href="#" class="hover:text-indigo-400 transition">Fale Conosco</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition">Trocas e Devoluções</a></li>
+                    <li><a href="#" class="hover:text-indigo-400 transition">Termos de Uso</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg mb-4">Siga-nos</h4>
+                <div class="flex space-x-4">
+                    <!-- Estes links são apenas placeholders (rodapé), não precisam de funcionalidade -->
+                    <a href="#" class="text-gray-400 hover:text-indigo-400 transition"><i data-lucide="facebook" class="w-6 h-6"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-indigo-400 transition"><i data-lucide="instagram" class="w-6 h-6"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-indigo-400 transition"><i data-lucide="twitter" class="w-6 h-6"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-gray-400">
+            &copy; 2024 Casa Conforto. Todos os direitos reservados.
+        </div>
+    </footer>
+
+    <!-- Notificação Flutuante (Toast) -->
+    <div id="notification-bar" class="fixed bottom-4 right-4 p-4 rounded-xl text-white shadow-xl z-50 transition duration-300 ease-in-out transform translate-y-20 opacity-0 bg-blue-500">
+        <!-- Conteúdo da notificação (injetado por JS) -->
+    </div>
+
+    <!-- Modal de Carrinho de Compras -->
+    <div id="cart-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden animate-out" onclick="if(event.target.id === 'cart-modal') toggleCartModal()">
+        <div class="flex items-start justify-end min-h-screen p-0 sm:p-4">
+            <div class="modal-content bg-gray-50 w-full max-w-lg h-screen sm:h-auto sm:max-h-[90vh] rounded-none sm:rounded-2xl shadow-2xl p-6 transform translate-y-[-20px]" onclick="event.stopPropagation()">
+                
+                <!-- Header do Modal -->
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
+                    <h2 class="text-2xl font-extrabold text-gray-900 flex items-center space-x-2">
+                        <i data-lucide="shopping-bag" class="w-6 h-6 text-indigo-600"></i>
+                        <span>Seu Carrinho</span>
+                    </h2>
+                    <button onclick="toggleCartModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full bg-white hover:bg-gray-100 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Lista de Itens do Carrinho -->
+                <div id="cart-list" class="space-y-4 custom-scrollbar overflow-y-auto max-h-96 pr-2">
+                    <!-- Itens injetados pelo JS -->
+                </div>
+
+                <!-- Mensagem de Carrinho Vazio -->
+                <div id="cart-empty-message" class="text-center py-10 text-gray-500">
+                    <i data-lucide="box-select" class="w-10 h-10 mx-auto mb-3 text-indigo-400"></i>
+                    <p class="text-lg font-semibold">Seu carrinho está aguardando sua seleção.</p>
+                    <p class="text-sm">Explore nossos produtos incríveis para começar!</p>
+                </div>
+
+                <!-- Footer do Modal (Total e Ações) -->
+                <div id="cart-action-buttons" class="mt-6 pt-4 border-t border-gray-200">
+                    <div id="cart-total" class="flex flex-col mb-4 space-y-1">
+                        <!-- Conteúdo de Subtotal/Frete/Total injetado por JS -->
+                    </div>
+
+                    <div class="flex flex-col space-y-3">
+                        <button onclick="checkout()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.01] focus:ring-4 focus:ring-indigo-300">
+                            Finalizar Compra
+                        </button>
+                        <button onclick="clearCart()" class="w-full flex items-center justify-center space-x-2 bg-transparent text-gray-600 py-2 rounded-xl font-semibold border border-gray-300 hover:bg-gray-100 transition duration-150">
+                             <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            <span>Limpar Carrinho</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>
